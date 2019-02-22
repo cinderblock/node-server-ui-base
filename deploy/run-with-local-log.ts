@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from 'path';
 
-import * as wip from '@cinderblock/node-git-wip';
+import wip = require('@cinderblock/node-git-wip');
 import * as SSH from 'node-ssh';
 import * as NodeGit from 'nodegit';
 
