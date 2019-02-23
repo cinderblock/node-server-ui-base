@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Coupled daemon and UI with bundled deploy scripts",
   "scripts": {
-    "install": "install-vscode-extensions",
+    "dev": "yarn && yarn daemon && yarn deploy && yarn ui && install-vscode-extensions",
     "ui": "cd ui && yarn",
     "daemon": "cd daemon && yarn",
     "deploy": "cd deploy && yarn",
@@ -14,11 +14,11 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "eslint": "^5.9.0",
+    "eslint": "^5.14.1",
     "install-vscode-extensions": "^1.0.0",
-    "prettier": "^1.15.2"
+    "prettier": "^1.16.4"
   },
   "dependencies": {
-    "yarn": "^1.12.3"
+    "yarn": "^1.13.0"
   }
 }
