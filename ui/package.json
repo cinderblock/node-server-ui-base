@@ -3,7 +3,9 @@
   "scripts": {
     "setup": "yarn install --non-interactive --silent && yarn",
     "dev": "webpack-dev-server",
-    "build": "webpack"
+    "build": "webpack",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
   },
   "license": "MIT",
   "private": true,
@@ -34,7 +36,8 @@
     "webpack-cli": "^3.2.3",
     "webpack-dev-middleware": "^3.6.0",
     "webpack-dev-server": "^3.2.1",
-    "webpack-hot-middleware": "^2.24.3"
+    "webpack-hot-middleware": "^2.24.3",
+    "snyk": "^1.189.0"
   },
   "devDependencies": {
     "@types/react": "^16.8.5",
@@ -44,5 +47,6 @@
     "qrcode-terminal": "^0.12.0",
     "ts-loader": "^5.3.3",
     "typescript": "^3.3.3333"
-  }
+  },
+  "snyk": true
 }
