@@ -33,7 +33,7 @@ module.exports = {
         xfwd: true,
       },
     },
-    setup(app, server) {
+    before(_, server) {
       setImmediate(() => {
         const qrcode = require('qrcode-terminal');
         const chalk = require('chalk');

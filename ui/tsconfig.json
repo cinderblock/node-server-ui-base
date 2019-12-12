@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "CommonJS",
     // Most modern browsers support es2018
     "target": "es2018",
     "lib": ["es2018", "dom"],

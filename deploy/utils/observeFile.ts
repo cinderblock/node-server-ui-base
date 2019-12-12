@@ -1,53 +1,36 @@
-import { Observable, Subscriber } from 'rxjs';
 import { watch } from 'fs';
-import { EventEmitter } from 'events';
+import { Observable } from 'rxjs';
+import md5file from 'md5-file';
 import { promisify } from 'util';
 
-import md5file = require('md5-file');
+const md5filePromise = promisify(md5file);
 
-const md5Promise = promisify(md5file);
-
-export default function observeFileChange(file: string, suppressInitial = false) {
-  const changes = new EventEmitter();
-
+export default function observeFileChange(file: string, suppressInitial = false): Observable<void> {
   let hash: string;
 
-  md5Promise(file).then(initialHash => {
-    hash = initialHash;
-
+  return new Observable<void>(observer => {
     const watcher = watch(file);
 
     watcher.on('change', async (eventType: 'change' | 'rename', filename: string) => {
       if (eventType != 'change') return;
       console.log('Change event:', eventType, filename);
 
-      md5Promise(file)
-        .then(newHash => {
-          if (newHash !== hash) {
-            hash = newHash;
-            changes.emit('change');
-          }
-        })
-        // Catch errors reading md5 of file
-        .catch();
+      const newHash = await md5filePromise(file).catch();
+
+      if (newHash !== hash) {
+        hash = newHash;
+        observer.next();
+      }
     });
 
-    watcher.on('error', err => {
-      // TODO: Error handling
-      console.log('Watch error');
-    });
+    watcher.on('error', observer.error);
 
-    watcher.on('close', () => {
-      // TODO: Error handling
-      console.log('Watch close');
-    });
-  });
+    watcher.on('close', observer.complete);
 
-  return new Observable<void>(observer => {
     if (!suppressInitial) observer.next();
 
-    changes.on('change', observer.next);
-
-    return () => changes.removeListener('change', observer.next);
+    return (): void => {
+      watcher.close();
+    };
   });
 }

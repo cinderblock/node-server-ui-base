@@ -5,12 +5,14 @@ type Colorizer = (input: string) => string;
 
 type ColorList = Colorizer[] | { colors: Colorizer[]; modulo?: number; numbers?: 'always' | 'auto' };
 
-export function makeVariableLog(colors: ColorList, prefix?: string) {
+type Logger = typeof console.log;
+
+export function makeVariableLog(colors: ColorList, prefix?: string): Logger {
   const arr = Array.isArray(colors) ? colors : colors.colors;
   const mod = !Array.isArray(colors) && colors.modulo !== undefined ? colors.modulo : arr.length > 1 ? 2 : 1;
   const numbers = !Array.isArray(colors) && colors.numbers === 'always';
 
-  function colorize(val: any, i: number): any {
+  function colorize(val: Parameters<Logger>[0], i: number): Parameters<Logger>[0] | string {
     if (!(typeof val == 'string' || (numbers && typeof val == 'number'))) return val;
 
     if (i >= arr.length) {
@@ -20,14 +22,14 @@ export function makeVariableLog(colors: ColorList, prefix?: string) {
       i += arr.length - mod;
     }
 
-    return arr[i]('' + val);
+    return arr[i](`${val}`);
   }
 
-  return (...args: any[]) => console.log(...(prefix ? [prefix, ...args] : args).map(colorize));
+  return (...args: Parameters<Logger>): void => console.log(...(prefix ? [prefix, ...args] : args).map(colorize));
 }
 
 function makeChalkLog(color: (s: string) => string) {
-  return function(...args: any[]) {
+  return function(...args: Parameters<Logger>): void {
     console.log(...args.map(val => color(val)));
   };
 }

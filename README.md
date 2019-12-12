@@ -7,10 +7,8 @@ Skeleton for a sever/client TypeScript pair.
 This skeleton has 3 parts.
 
 1. A super simple node.js daemon skeleton with socket.io and colorful logging facilities.
-2. Basic React app skeleton with webpack, TypeScript, reactstrap, and socket.io client.
+2. Basic React app skeleton with webpack, TypeScript, and socket.io client (with fancy state synchronization).
 3. Deployment scripts
-
-Many apps can just be run locally for testing or development or directly on a target machine which is useful if there special hardware attached.
 
 ## create-node-server-ui-app
 
@@ -27,6 +25,7 @@ The development environment is intended to be a first class and modern.
 - Reload on save for client ui and server daemon running locally or remotely.
 - Full color easy console logging.
 - Easy debugging with source maps everywhere.
+- ESLint configured and integrated with editor
 - Dependency changes automatically maintained with git hooks.
 
 ### Prerequisites
@@ -62,11 +61,8 @@ One for the web **UI** and one to actually do something persistent, the **daemon
 
 ### Remote Execution
 
-In order to run the daemon on remote systems, the deploy config needs to be setup.
-Copy or move `deploy/config.sample.ts` to `deploy/config.ts` and edit as desired.
-
 Configs for daemons often need to be slightly different than when running locally.
-The deploy script will replace `daemon/config.ts` with `daemon/config.remote.ts` on the remote system before execution.
+The deploy script will pick a config file from [`daemon/configs/`](daemon/configs).
 
 ### Suggested Environment
 

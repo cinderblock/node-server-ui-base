@@ -1,8 +1,7 @@
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
 import AppContainer from './AppContainer';
-import { eventHandler } from './SocketConnection';
 
 import './style.css';
 
@@ -16,24 +15,7 @@ document.addEventListener(
       return;
     }
 
-    if (event.code == 'Escape') {
-      event.preventDefault();
-      eventHandler('stopRunning')();
-      return;
-    }
-
-    if (event.code == 'KeyS') {
-      event.preventDefault();
-      eventHandler('stopRunning')();
-      return;
-    }
-
-    if (event.code == 'Space') {
-      event.preventDefault();
-      return;
-    }
-
     console.log('No handler for:', event);
   },
-  false
+  false,
 );

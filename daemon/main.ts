@@ -1,28 +1,31 @@
-'use strict';
-
-// Local dependencies
 import * as debug from './utils/debug';
-import makeClientHandler from './ClientHandler';
-
-// Events from the clients and how to handle them
-const remoteControlServer = makeClientHandler({
-  // This event happens when mobile devices report their orientation data to the server.
-  // This could be very useful as a remote.
-  // Careful, this event happens at ~60Hz
-  // alpha = phone yaw 0-360 degrees.
-  // beta  = phone pitch +/- 90 degrees
-  // gamma = phone roll  +/- 90 degrees
-  deviceorientation: ({ gamma }: { gamma: number }) => {
-    // debug.log(gamma);
-  },
-
-  // Shut the whole thing down.
-  Shutdown,
-});
+import { makeClientHandler } from './ClientHandler';
+import { handleIncomingControls, realControls as userControls } from './UserControls';
+import { State } from '../shared/State';
 
 debug.green('Hello, world.');
 
-function Shutdown() {
+// Events from the clients and how to handle them
+const remoteControlServer = makeClientHandler();
+
+remoteControlServer.onControlUpdate(handleIncomingControls);
+
+const state: State = {
+  debug: {
+    heapUsed: 0,
+    gc: {
+      count: 0,
+    },
+  },
+  time: Date.now(),
+  userControls,
+};
+
+setInterval(() => {
+  remoteControlServer.update(state);
+}, 1000 / 30);
+
+function Shutdown(): void {
   setImmediate(() => {
     // Shutdown remote control server
     remoteControlServer.close();
