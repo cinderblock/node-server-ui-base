@@ -1,37 +1,49 @@
 {
   "name": "node-server-ui-base",
-  "version": "0.0.0",
+  "version": "1.0.0-alpha",
   "description": "Coupled daemon and UI with bundled deploy scripts",
   "repository": "git@github.com:cinderblock/node-server-ui-base.git",
   "author": "Cameron Tacklind <cameron@tacklind.com>",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "setup": "yarn install && yarn daemon install && yarn deploy install && yarn ui install && install-vscode-extensions",
-    "synchronize-workspace": "yarn --non-interactive --no-progress && yarn daemon --non-interactive --no-progress && yarn deploy --non-interactive --no-progress && yarn ui --non-interactive --no-progress && install-vscode-extensions",
-    "upgrade-all": "yarn upgrade --latest && yarn daemon upgrade --latest && yarn deploy upgrade --latest && yarn ui upgrade --latest",
+    "upgrade-all": "npm exec --workspaces -- ncu -u && npm install",
     "lint": "eslint . --ext .ts,.tsx",
-    "ui": "yarn --cwd ui",
-    "daemon": "yarn --cwd daemon",
-    "deploy": "yarn --cwd deploy",
-    "remote": "yarn --cwd deploy remote"
+    "spell": "cspell **",
+    "remote": "npm -w deploy run remote --"
   },
   "dependencies": {
-    "yarn": "^1.22.0"
+    "node": "^16.4.0",
+    "npm": "^7.19.1"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^2.11.0",
-    "@typescript-eslint/parser": "^2.11.0",
-    "eslint": "^6.7.2",
-    "eslint-config-prettier": "^6.7.0",
-    "eslint-plugin-prettier": "^3.1.1",
-    "eslint-plugin-react": "^7.17.0",
-    "eslint-plugin-react-hooks": "^2.3.0",
-    "husky": "^3.1.0",
+    "@typescript-eslint/eslint-plugin": "^4.28.1",
+    "@typescript-eslint/parser": "^4.28.1",
+    "cspell": "^5.6.6",
+    "eslint": "^7.29.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-markdown": "^2.2.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "eslint-plugin-react": "^7.24.0",
+    "eslint-plugin-react-hooks": "^4.2.0",
+    "husky": "^7.0.0",
     "install-vscode-extensions": "^1.0.0",
-    "prettier": "^1.19.1",
-    "ts-node": "^8.5.4",
-    "ts-node-dev": "^1.0.0-pre.44",
-    "typescript": "^3.7.3"
+    "nodemon": "^2.0.9",
+    "npm-check-updates": "^11.7.1",
+    "prettier": "^2.3.2",
+    "ts-node": "^10.0.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.3.5",
+    "webpack-dev-server": "^3.11.2"
+  },
+  "workspaces": [
+    ".",
+    "ui",
+    "daemon",
+    "deploy"
+  ],
+  "engines": {
+    "node": ">=14",
+    "npm": ">=7"
   }
 }

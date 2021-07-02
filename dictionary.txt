@@ -1,0 +1,17 @@
+Tacklind
+autobind
+cinderblock
+favicons
+fontawesome
+fortawesome
+gnutls
+journalctl
+libcurl
+libudev
+mutex
+noemit
+qrcode
+raspberrypi
+shallowequal
+timeago
+xfwd

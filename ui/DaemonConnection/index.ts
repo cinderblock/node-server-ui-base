@@ -1,4 +1,4 @@
-import io = require('socket.io-client');
+import io from 'socket.io-client';
 import { State } from '../../shared/State';
 
 // config

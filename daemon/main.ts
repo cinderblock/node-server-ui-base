@@ -1,39 +1,9 @@
-import * as debug from './utils/debug';
-import { makeClientHandler } from './ClientHandler';
-import { handleIncomingControls, realControls as userControls } from './UserControls';
-import { State } from '../shared/State';
+'use strict';
 
-debug.green('Hello, world.');
+if (require.main === module) throw new Error("No. Can't run this as a module");
 
-// Events from the clients and how to handle them
-const remoteControlServer = makeClientHandler();
+// Enable source map support for errors
+import 'source-map-support/register';
 
-remoteControlServer.onControlUpdate(handleIncomingControls);
-
-const state: State = {
-  debug: {
-    heapUsed: 0,
-    gc: {
-      count: 0,
-    },
-  },
-  time: Date.now(),
-  userControls,
-};
-
-setInterval(() => {
-  remoteControlServer.update(state);
-}, 1000 / 30);
-
-function Shutdown(): void {
-  setImmediate(() => {
-    // Shutdown remote control server
-    remoteControlServer.close();
-
-    // Just kill the process in a short time in case we've forgotten to stop something...
-    setTimeout(() => {
-      debug.error('Something is still running...', 'Forcing a shutdown.');
-      process.exit(0);
-    }, 100).unref();
-  });
-}
+// Our "mains"
+import './Monitor/main';

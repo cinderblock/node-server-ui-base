@@ -10,7 +10,7 @@ import { isPathString, isDirectoryString } from '../utils/pathTypeDiscriminators
 import { reduceFileListToMinimalDirs } from '../utils/reduceFileListToMinimalDirs';
 import { getCompiledSourcesFromProgram } from './getCompiledSourcesFromProgram';
 import { mkdir } from '../utils/mkdir';
-import { remoteExecYarn } from './remoteExecYarn';
+import { remoteExecNpm } from './remoteExecNpm';
 import { automaticPrivateKey } from '../utils/automaticPrivateKey';
 import { makeProxyServer } from '../utils/makeProxyServer';
 import { Sources } from './Sources';
@@ -77,7 +77,7 @@ export type Options = {
   /**
    * List of files not compiled by typescript to move over manually
    *
-   * `package.json` and `yarn.lock` will automatically be included.
+   * `package.json` and lock files will automatically be included.
    */
   manualSyncFiles?: string[];
 
@@ -140,8 +140,8 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
 
   const manualSyncFiles = options.manualSyncFiles || [];
 
-  // Always sync package.json and yarn.lock
-  manualSyncFiles.push('package.json', 'yarn.lock');
+  // Always sync package.json and package-lock.json
+  manualSyncFiles.push('package.json', 'package-lock.json');
 
   async function updatePackagesAndManualTransfers(): Promise<void> {
     options.log?.info('📦 Synchronizing files');
@@ -162,7 +162,7 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
 
     options.log?.info('📦 Updating module dependencies');
 
-    await remoteExecYarn(ssh, remoteModuleDir, options.log);
+    await remoteExecNpm(ssh, remoteModuleDir, options.log);
 
     options.log?.info('📦 Dependencies up to date');
   }
@@ -201,20 +201,6 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
     // handleCompiledSources(program)
   }
 
-  // WIP new "main"
-  if (options.exitAfterDeploy && false) {
-    options.remote.start?.(ssh);
-
-    const deploy: Promise<void>[] = [];
-    deploy.push(updatePackagesAndManualTransfers());
-    deploy.push(compileAndDistributeSources());
-    await Promise.all(deploy);
-
-    options.remote.stop?.(ssh);
-
-    return;
-  }
-
   // Create a proxy so that the ui running locally can talk to the daemon as if it were also running locally
   makeProxyServer({ remoteHost: options.connect.host, remotePort: 8000 });
   // ssh.addTunnel is easier but breaks easier. So, we use the above instead.
@@ -236,7 +222,7 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
     // Mark that we're building and shouldn't start a run
     .pipe(map(markBuilding))
     .pipe(mergeMap(() => remoteStop(ssh)))
-    // Copy the files and run yarn over ssh. Don't re-run until that is complete.
+    // Copy the files and run npm over ssh. Don't re-run until that is complete.
     .pipe(mergeMap(updatePackagesAndManualTransfers))
     .pipe(map(doneBuilding))
     .pipe(map(() => options.log?.green('✔ Packages updated')));

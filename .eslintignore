@@ -1,6 +1,8 @@
-node_modules
-yarn-error.log
 daemon.pid
 daemon.sock
 daemon/build
+node_modules
+npm-debug.log
+package-lock.json
 ui/build
+yarn-error.log

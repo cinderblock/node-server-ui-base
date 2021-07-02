@@ -1,9 +1,6 @@
 import { watch } from 'fs';
 import { Observable } from 'rxjs';
 import md5file from 'md5-file';
-import { promisify } from 'util';
-
-const md5filePromise = promisify(md5file);
 
 export default function observeFileChange(file: string, suppressInitial = false): Observable<void> {
   let hash: string;
@@ -15,7 +12,7 @@ export default function observeFileChange(file: string, suppressInitial = false)
       if (eventType != 'change') return;
       console.log('Change event:', eventType, filename);
 
-      const newHash = await md5filePromise(file).catch();
+      const newHash = await md5file(file).catch();
 
       if (newHash !== hash) {
         hash = newHash;

@@ -1,6 +1,8 @@
 node_modules
 yarn-error.log
+npm-debug.log
 daemon.pid
 daemon.sock
 daemon/build
 ui/build
+ui/bundle

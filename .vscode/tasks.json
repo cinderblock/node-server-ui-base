@@ -4,8 +4,8 @@
     {
       "label": "Remote daemon kill",
       "type": "shell",
-      "command": "yarn",
-      "args": ["remote", "kill"],
+      "command": "npm",
+      "args": ["run", "remote", "kill"],
       "options": {
         "cwd": "${workspaceRoot}"
       },
@@ -19,8 +19,8 @@
     {
       "label": "WebUI Dev Server",
       "type": "shell",
-      "command": "yarn",
-      "args": ["ui", "start"],
+      "command": "npm",
+      "args": ["run", "ui", "start"],
       "options": {
         "cwd": "${workspaceRoot}"
       },
@@ -33,8 +33,8 @@
     {
       "label": "Server Deploy",
       "type": "shell",
-      "command": "yarn",
-      "args": ["deploy", "daemon"],
+      "command": "npm",
+      "args": ["run", "deploy", "daemon"],
       "presentation": {
         "panel": "shared"
       },

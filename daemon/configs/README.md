@@ -1,6 +1,6 @@
 # How to use multiple configs
 
-The deploy code (`yarn deploy daemon-dev`) looks at its config to pick which file in here shall be used on the deployed system.
+The deploy code (`npm run deploy daemon-dev`) looks at its config to pick which file in here shall be used on the deployed system.
 
 ## New config
 

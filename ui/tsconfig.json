@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
+    "module": "ES2020",
+    "moduleResolution": "node",
     // Most modern browsers support es2018
     "target": "es2018",
     "lib": ["es2018", "dom"],
@@ -9,5 +10,6 @@
     "esModuleInterop": true,
     "strict": true,
     "sourceMap": true
-  }
+  },
+  "exclude": ["./webpack/**"]
 }

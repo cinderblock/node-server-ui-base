@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import AppContainer from './AppContainer';
+import { MainContainer } from './components/MainContainer';
 
 import './style.css';
 
-ReactDOM.render(<AppContainer />, document.body.appendChild(document.createElement('div')));
+ReactDOM.render(<MainContainer />, document.body.appendChild(document.createElement('div')));
 
 document.addEventListener(
   'keydown',

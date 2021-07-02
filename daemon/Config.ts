@@ -2,7 +2,10 @@
  * Device specific configurations
  */
 export type Config = {
-  // Fill what you expect configs to set here
+  /**
+   * Where our log files should be stored
+   */
+  logs: string;
 };
 
 // You can ignore this missing file if you're not running locally

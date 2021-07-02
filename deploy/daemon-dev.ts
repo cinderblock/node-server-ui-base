@@ -1,98 +1,110 @@
 #!/usr/bin/env node
 
-if (module.parent) throw new Error('Incorrect usage');
+if (require.main === module) throw new Error('Incorrect usage');
 
 import * as log from './utils/debug';
 import watchBuildTransferRun from './src/watchBuildTransferRun';
+import { Options } from './src/watchBuildTransferRun';
 import { sshSpawn } from './src/sshRun';
 import { Folder as ConfigFolderHandler } from './src/ConfigurationsHandler';
 import { remoteDataPrinter } from './src/remoteDataPrinter';
-
-type Options = {
-  clean: boolean | 'full';
-  config: string;
-};
-
-const args = process.argv.slice(2);
-
-// Defaults
-const opts: Options = {
-  clean: true,
-  config: 'config',
-};
-
-for (let i = 0; i < args.length; i++) {
-  switch (args[i]) {
-    case '--nuke':
-    case '--full-clean':
-      opts.clean = 'full';
-      break;
-    case '--no-clean':
-      opts.clean = false;
-      break;
-    default:
-      opts.config = args[i];
-      break;
-  }
-}
+import SSH2Promise from 'ssh2-promise';
 
 type ThenArg<T> = T extends PromiseLike<infer U> ? U : T;
 
 let journal: ThenArg<ReturnType<typeof sshSpawn>>;
 
-watchBuildTransferRun({
+const daemonName = 'my-daemon'
+const directory = daemonName;
+
+type CleanOptions =
+  /**
+   * Don't
+   */
+  | false
+  /**
+   * Clean compiled sources
+   */
+  | true
+  /**
+   * node_modules
+   */
+  | 'full'
+  /**
+   * node_modules + yarn/npm cache
+   */
+  | 'cache';
+
+const clean = true as CleanOptions;
+
+const stop = (ssh: SSH2Promise): Promise<void> => sshSpawn(log, ssh, ['sudo', 'systemctl', 'stop', daemonName]);
+
+const start = async (ssh: SSH2Promise): Promise<void> => {
+  if (!journal) {
+    journal = await sshSpawn(log, ssh, ['journalctl', '-fu', daemonName, '-n0']);
+    journal.stdin.on('data', remoteDataPrinter(log, 'journalctl', 'stdout'));
+    journal.stderr.on('data', remoteDataPrinter(log, 'journalctl', 'stderr'));
+  }
+  await sshSpawn(log, ssh, ['sudo', 'systemctl', 'start', daemonName]);
+};
+
+const raspberryPiConfig: Options = {
   connect: {
-    host: 'some.host',
     username: 'pi',
+    password: 'raspberry',
+    host: 'raspberrypi',
   },
-
   async onConnect(ssh) {
-    if (opts.clean) {
-      const save = opts.clean !== 'full';
+    await stop(ssh);
 
-      const modules = 'deploy/daemon/node_modules';
+    async function cleanYarnCache() {
+      await ssh.exec('yarn', ['cache', 'clean']);
+    }
+
+    async function cleanNpmCache() {
+      await ssh.exec('npm', ['cache', 'clean']);
+    }
+
+    if (clean) {
+      const modules = `${directory}/daemon/node_modules`;
       const temp = 'temp_node_modules';
 
       // Save node_modules optionally
-      if (save) await ssh.exec('mv', [modules, temp]);
+      const restore =
+        clean === true &&
+        (await ssh.exec('mv', [modules, temp]).then(
+          () => true,
+          () => {
+            ssh.exec('rm', ['-rf', temp]).catch(() => {});
+            return false;
+          },
+        ));
+
+      if (clean === 'cache') {
+        await Promise.all([cleanYarnCache().catch(() => {}), cleanNpmCache()]);
+      }
 
       // Clean
-      await ssh.exec('rm', ['-rf', 'deploy']);
+      await ssh.exec('rm', ['-rf', directory]);
 
       // Restore saved
-      if (save) {
-        await ssh.exec('mkdir', ['-p', 'deploy/daemon']);
+      if (restore) {
+        await ssh.exec('mkdir', ['-p', `${directory}/daemon`]);
         await ssh.exec('mv', [temp, modules]);
       }
     }
 
-    await ssh.exec('mkdir', ['-p', 'deploy/dataFiles']);
+    await ssh.exec('mkdir', ['-p', `${directory}/data`]);
   },
-
   postCompile(data) {
-    // ConfigFolderHandler(data, { remoteModuleDir: 'deploy/daemon', selectedConfig: 'config' });
+    ConfigFolderHandler(data, { remoteModuleDir: `${directory}/daemon`, selectedConfig: 'test1' });
   },
-
   remote: {
-    directory: 'deploy',
-
-    stop: (ssh): ReturnType<typeof sshSpawn> => sshSpawn(log, ssh, ['sudo', 'systemctl', 'stop', 'deploy']),
-
-    start: async (ssh): ReturnType<typeof sshSpawn> => {
-      // Start journal once
-      if (!journal) {
-        journal = await sshSpawn(log, ssh, ['journalctl', '-fu', 'deploy', '-n0']);
-        journal.stdin.on('data', remoteDataPrinter(log, 'journalctl', 'stdout'));
-        journal.stderr.on('data', remoteDataPrinter(log, 'journalctl', 'stderr'));
-        journal.on('close', () => {
-          // Let journal restart if it dies for some reason
-          journal = undefined;
-        });
-      }
-
-      return sshSpawn(log, ssh, ['sudo', 'systemctl', 'start', 'deploy']);
-    },
+    directory,
+    stop,
+    start,
   },
-
   log,
-}).catch(e => log.error(e.toString()));
+};
+
+watchBuildTransferRun(raspberryPiConfig).catch(e => log.error('Main Failure:', e.toString()));

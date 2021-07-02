@@ -1,8 +1,13 @@
 import { UserControlsFull } from './UserControls';
 
 /**
- * The shape of state is defined here.
- * State
+ * The shape of shared state is defined here.
+ *
+ * State is *EVERYTHING* that we care about.
+ * This includes, but is not limited to
+ *  - Our "state" - as in State space control
+ *  - The Time - Useful to know
+ *  - The user controllable stuff
  */
 export type State = {
   debug: {
@@ -22,7 +27,10 @@ export type State = {
   time: number;
 
   /**
-   * Control constants
+   * These are the ONLY things that the user gets to touch relatively directly.
+   *
+   * Values set by the UI are sanitized by `protectedControls`,
+   * set in `./UserControls.ts`
    */
   userControls: UserControlsFull;
 };
