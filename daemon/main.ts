@@ -1,6 +1,6 @@
 'use strict';
 
-if (require.main === module) throw new Error("No. Can't run this as a module");
+if (require.main !== module) throw new Error('Do not import this file. Run it directly.');
 
 // Enable source map support for errors
 import 'source-map-support/register';
