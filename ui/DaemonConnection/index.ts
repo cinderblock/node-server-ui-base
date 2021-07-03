@@ -1,5 +1,6 @@
 import io from 'socket.io-client';
 import { State } from '../../shared/State';
+import { isNullish } from '../utils/isNullish';
 
 // config
 const socketURL = '';
@@ -22,7 +23,6 @@ socket.on('startupTime', (msec: number) => (Store.startupTime = new Date(msec)))
 
 // Pass orientation data back to server
 window.addEventListener('deviceorientation', value => {
-  const { alpha } = value;
-  if (alpha === null || alpha === undefined) return;
+  if (isNullish(value?.alpha)) return;
   socket.emit('deviceorientation', value);
 });
