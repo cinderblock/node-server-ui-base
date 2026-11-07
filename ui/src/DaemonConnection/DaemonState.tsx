@@ -1,8 +1,7 @@
-import React from 'react';
-import { State } from '../../shared/State';
+import type { State } from '../../../shared/State';
 import fastEqual from 'fast-deep-equal';
 import { noFail } from '../utils/noFail';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import socket from '.';
 
 export type DaemonStateReducer<T> = (state: State) => T;
@@ -30,7 +29,7 @@ export function useDaemonStateUpdate<T>(reducer: DaemonStateReducer<T>, equal?: 
   useEffect(() => {
     socket.on('update', listener);
     return (): void => {
-      socket.removeListener('update', listener);
+      socket.off('update', listener);
     };
   });
 
@@ -43,6 +42,6 @@ export function DaemonStateData<T>({
 }: {
   reducer: DaemonStateReducer<T>;
   equal?: Equal<T>;
-}): JSX.Element {
-  return <>{useDaemonStateUpdate(reducer, equal)}</>;
+}): ReactNode {
+  return <>{useDaemonStateUpdate(reducer, equal) as ReactNode}</>;
 }

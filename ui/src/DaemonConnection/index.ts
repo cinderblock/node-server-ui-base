@@ -1,5 +1,5 @@
-import io from 'socket.io-client';
-import { State } from '../../shared/State';
+import { io } from 'socket.io-client';
+import type { State } from '../../../shared/State';
 import { isNullish } from '../utils/isNullish';
 
 // config
@@ -13,7 +13,7 @@ export default socket;
 // Make state available in console
 socket.on('update', (state: State) => Object.assign(window, { state }));
 
-socket.on('error', console.log.bind(0, 'Error:'));
+socket.on('connect_error', console.log.bind(0, 'Error:'));
 
 // TODO: replace this with something much better
 export const Store: { startupTime?: Date } = {};

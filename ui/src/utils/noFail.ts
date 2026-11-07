@@ -9,6 +9,6 @@ export function noFail<Func extends (...args: Args[]) => Result, Result, Args = 
     try {
       return original(...args);
     } catch (e) {}
-    return (undefined as unknown) as Result;
+    return undefined as unknown as Result;
   };
 }

@@ -1,11 +1,15 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 
 import { MainContainer } from './components/MainContainer';
 
 import './style.css';
 
-ReactDOM.render(<MainContainer />, document.body.appendChild(document.createElement('div')));
+createRoot(document.body.appendChild(document.createElement('div'))).render(
+  <StrictMode>
+    <MainContainer />
+  </StrictMode>,
+);
 
 document.addEventListener(
   'keydown',

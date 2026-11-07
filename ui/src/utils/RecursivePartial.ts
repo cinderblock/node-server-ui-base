@@ -1,1 +1,1 @@
-export { RecursivePartial } from '../../shared/utils/RecursivePartial';
+export type { RecursivePartial } from '../../../shared/utils/RecursivePartial';

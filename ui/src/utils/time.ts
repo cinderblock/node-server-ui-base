@@ -7,7 +7,8 @@
  * 65 => '65.0s'
  * 200 => '3.3m'
  * 7000 => '1.9h'
- * 140 000 => '2d'
+ * 140 000 => '39h'
+ * 300 000 => '3.5d'
  * @param seconds Number of seconds to convert
  */
 export function secondsToHumanReadable(seconds: number): string {

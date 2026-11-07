@@ -1,7 +1,7 @@
-import { UserControllable, UserControlsFull } from '../../shared/UserControls';
+import type { UserControllable, UserControlsFull } from '../../../shared/UserControls';
 import socket from '.';
-import { useCallback } from 'react';
-import { RecursivePartial } from '../utils/RecursivePartial';
+import { useCallback, type DependencyList } from 'react';
+import type { RecursivePartial } from '../utils/RecursivePartial';
 
 let sequence = 0;
 
@@ -20,11 +20,9 @@ export function updateUserControls(update: UserControllable): void {
   console.log('Sending user controls:', userControls);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useUserControls<T extends any[]>(
   event: (...args: T) => UserControllable,
-  deps: React.DependencyList = [],
+  deps: DependencyList = [],
 ): (...args: T) => ReturnType<typeof updateUserControls> {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useCallback((...args) => updateUserControls(event(...args)), [event, ...deps]);
+  return useCallback((...args: T) => updateUserControls(event(...args)), [event, ...deps]);
 }
