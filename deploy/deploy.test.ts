@@ -59,6 +59,8 @@ function attrs(stats: Stats) {
  */
 function makeFakeRemote(root: string, shell: string) {
   const commands: string[] = [];
+  /** Everything the remote's commands printed, for failure messages */
+  const transcript: string[] = [];
   const children = new Set<ChildProcess>();
 
   /**
@@ -100,6 +102,9 @@ function makeFakeRemote(root: string, shell: string) {
           children.add(child);
           child.stdout.pipe(channel, { end: false });
           child.stderr.pipe(channel.stderr, { end: false });
+          child.stdout.on('data', (d: Buffer) => transcript.push(d.toString()));
+          child.stderr.on('data', (d: Buffer) => transcript.push(d.toString()));
+          child.on('exit', code => transcript.push(`[${info.command.split(' ')[0]} exited ${code}]\n`));
           child.on('close', code => {
             children.delete(child);
             try {
@@ -171,7 +176,7 @@ function makeFakeRemote(root: string, shell: string) {
     });
   });
 
-  return { server, commands, killAll };
+  return { server, commands, transcript, killAll };
 }
 
 let root: string;
@@ -232,7 +237,9 @@ test.skipIf(!sh)(
     await Promise.race([
       started.promise,
       Bun.sleep(150_000).then(() => {
-        throw new Error(`Daemon did not start.\nOutput:\n${output}\nCommands:\n${remote.commands.join('\n')}`);
+        throw new Error(
+          `Daemon did not start.\nOutput:\n${output}\nCommands:\n${remote.commands.join('\n')}\nRemote output:\n${remote.transcript.join('')}`,
+        );
       }),
     ]);
 
