@@ -65,7 +65,7 @@ export function makeObjectSetterRecursive<T extends {}>(internal: T, setters: Ne
 
     const prop: PropertyDescriptor = isNestedSetters<T[P]>(setterOrNested)
       ? {
-          value: makeObjectSetterRecursive(internal[x], setterOrNested),
+          value: makeObjectSetterRecursive(internal[x] as T[P] & {}, setterOrNested),
         }
       : {
           set: setterOrNested,

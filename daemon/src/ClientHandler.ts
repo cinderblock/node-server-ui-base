@@ -1,10 +1,11 @@
-import { createServer } from 'http';
-import { uptime } from 'os';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { uptime } from 'node:os';
 import chalk from 'chalk';
-import SocketIO from 'socket.io';
-import ServerStarter = require('server-starter');
-import { State } from '../shared/State';
-import { UserControlUpdate } from '../shared/UserControls';
+import { Server, type Socket } from 'socket.io';
+import { startServer } from 'server-starter';
+import type { State } from '../../shared/State.js';
+import type { UserControlUpdate } from '../../shared/UserControls.js';
 
 let clientID = 0;
 
@@ -13,21 +14,37 @@ export type TeardownHandler = () => void;
 
 export type StateUpdater = (state: State) => void;
 
+export type ClientHandlerOptions = {
+  /**
+   * TCP port or unix socket path to listen on.
+   *
+   * Defaults to the `PORT` environment variable, or 8000.
+   */
+  listen?: number | string;
+};
+
 const controlListeners: UserControlsHandler[] = [];
 
-export function makeClientHandler(): {
+function defaultListen(): number | string {
+  const env = process.env.PORT;
+  if (!env) return 8000;
+  return /^\d+$/.test(env) ? Number(env) : env;
+}
+
+export function makeClientHandler({ listen = defaultListen() }: ClientHandlerOptions = {}): {
   onControlUpdate: (handler: UserControlsHandler) => TeardownHandler;
-  close: () => void;
+  close: () => Promise<void>;
   update: StateUpdater;
+  listening: Promise<AddressInfo | string | null>;
 } {
   // Helper function that is run every time a new webUI connects to us
-  function setupClientSocket(sock: SocketIO.Socket): void {
+  function setupClientSocket(sock: Socket): void {
     const ID = clientID++;
 
     // TODO: Do we trust the proxy to set true `x-real-ip` header?
     const headers = sock.conn.request.headers;
     const address = headers['x-forwarded-for'] || headers['x-real-ip'] || sock.handshake.address;
-    console.log(chalk.green('Client connected:'), chalk.cyan(address));
+    console.log(chalk.green('Client connected:'), chalk.cyan(address), chalk.grey(`#${ID}`));
 
     // Give clients a our startup time once
     sock.emit('startupTime', Date.now() - uptime() * 1000);
@@ -44,33 +61,33 @@ export function makeClientHandler(): {
 
   const server = createServer();
 
-  const sock = SocketIO(server, {
+  const io = new Server(server, {
     serveClient: false,
     transports: ['websocket'],
     pingInterval: 1000,
   });
 
   // When a new client connects, setup handlers for the possible incoming commands
-  sock.on('connection', setupClientSocket);
+  io.on('connection', setupClientSocket);
 
-  ServerStarter(
+  const listening = startServer(
     server,
-    {
-      listen: 8000,
-      // listen: '/tmp/daemon.sock',
-      // socketMode: 0o777,
-      // socketOwner: {
-      //   //user: 'pi',
-      //   group: 'www-data',
-      // },
-    },
-    (err, info, extra) => {
-      if (err) {
-        console.log(chalk.red('ERROR:'), err, info, extra);
-      } else {
-        // console.log('Listening:', info);
-      }
-    },
+    typeof listen === 'number'
+      ? { listen }
+      : {
+          listen,
+          // socketMode: 0o777,
+          // socketOwner: {
+          //   user: 'pi',
+          //   group: 'www-data',
+          // },
+        },
+  );
+
+  listening.then(
+    info =>
+      console.log(chalk.green('Listening:'), chalk.cyan(info === null || typeof info === 'string' ? info : info.port)),
+    err => console.log(chalk.red('ERROR:'), err),
   );
 
   function onControlUpdate(handler: UserControlsHandler): TeardownHandler {
@@ -86,9 +103,10 @@ export function makeClientHandler(): {
 
   return {
     onControlUpdate,
-    close: (): void => sock.close(),
+    close: (): Promise<void> => new Promise<void>(resolve => io.close(() => resolve())),
     update: (state): void => {
-      sock.volatile.emit('update', state);
+      io.volatile.emit('update', state);
     },
+    listening,
   };
 }

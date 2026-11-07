@@ -1,4 +1,4 @@
-import { Config } from '../Config';
+import type { Config } from '../Config.js';
 
 const config: Config = {
   logs: './logs',

@@ -1,4 +1,4 @@
-import { RecursivePartial } from './RecursivePartial';
+import type { RecursivePartial } from './RecursivePartial.js';
 
 /**
  * Iterate over enumerable properties of `update` and assign new values to `target`.
@@ -11,7 +11,7 @@ export function recursiveAssign<T extends {}>(target: T, update: RecursivePartia
   for (const key in update) {
     type U = T[Extract<keyof T, string>];
     if (typeof update[key] === 'object') {
-      recursiveAssign(target[key], update[key] as RecursivePartial<U>);
+      recursiveAssign(target[key] as U & {}, update[key] as RecursivePartial<U & {}>);
     } else {
       target[key] = update[key] as U;
     }

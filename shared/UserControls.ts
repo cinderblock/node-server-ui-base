@@ -1,4 +1,4 @@
-import { RecursivePartial } from './utils/RecursivePartial';
+import type { RecursivePartial } from './utils/RecursivePartial.js';
 
 export type UserControls = {};
 

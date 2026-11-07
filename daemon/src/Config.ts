@@ -8,8 +8,8 @@ export type Config = {
   logs: string;
 };
 
-// You can ignore this missing file if you're not running locally
-import localConfig from './configs/config';
+// Created from `config.example.ts` by `bun install`. On a deployed system, `deploy` points this at the selected config.
+import localConfig from './configs/config.js';
 // Help with types in case the above import fails
 const typedConfig: Config = localConfig;
 export default typedConfig;

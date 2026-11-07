@@ -1,4 +1,4 @@
-import { UserControlsFull } from './UserControls';
+import type { UserControlsFull } from './UserControls.js';
 
 /**
  * The shape of shared state is defined here.

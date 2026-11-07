@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
-    "target": "es2018",
-    "esModuleInterop": true,
-    "strict": true,
-    "lib": ["es2018", "dom"],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["bun"],
+    "rootDir": "..",
     "outDir": "build",
-    "noImplicitAny": true,
     "sourceMap": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "*": ["*", "node_modules/*", "node_modules/@types/*"]
-    }
-  }
+    "strict": true,
+    "noUnusedLocals": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "../shared/**/*"]
 }

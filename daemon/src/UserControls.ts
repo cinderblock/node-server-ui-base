@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { makeObjectSetterRecursive } from './utils/makeProtectedObject.js';
 
-import { makeObjectSetterRecursive } from './utils/makeProtectedObject';
-
-import { recursiveAssign } from './utils/recursiveAssign';
-import { UserControlUpdate, UserControlsFull } from '../shared/UserControls';
+import { recursiveAssign } from './utils/recursiveAssign.js';
+import type { UserControlUpdate, UserControlsFull } from '../../shared/UserControls.js';
 // State of the system with initial values
 export const realControls: UserControlsFull = {
   sequence: 0,
