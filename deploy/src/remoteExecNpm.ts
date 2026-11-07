@@ -21,6 +21,8 @@ export async function remoteExecNpm(ssh: SSH, cwd: string, log?: Debug): Promise
   args.push('--no-package-lock');
   // Quieter output
   args.push('--no-audit', '--no-fund');
+  // npm's update check leaves a background process holding the output open, so the command never finishes
+  args.push('--no-update-notifier');
 
   try {
     const npm: ClientChannel = await ssh.spawn('npm', args);

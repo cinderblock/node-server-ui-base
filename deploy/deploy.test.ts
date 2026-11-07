@@ -102,8 +102,12 @@ function makeFakeRemote(root: string, shell: string) {
           child.stderr.pipe(channel.stderr, { end: false });
           child.on('close', code => {
             children.delete(child);
-            channel.exit(code ?? 1);
-            channel.end();
+            try {
+              channel.exit(code ?? 1);
+              channel.end();
+            } catch {
+              // The client already went away (killed during teardown)
+            }
           });
         });
 
@@ -237,7 +241,13 @@ test.skipIf(!sh)(
       expect(statSync(join(root, directory, 'daemon', file)).isFile()).toBe(true);
     }
     expect(statSync(join(root, directory, 'daemon', 'node_modules', 'socket.io')).isDirectory()).toBe(true);
-    expect(remote.commands.some(c => c.startsWith('npm --prefix my-daemon/daemon install --omit=dev'))).toBe(true);
+    expect(
+      remote.commands.some(c =>
+        c.startsWith(
+          'npm --prefix my-daemon/daemon install --omit=dev --no-package-lock --no-audit --no-fund --no-update-notifier',
+        ),
+      ),
+    ).toBe(true);
 
     // And it works
     const socket = io(`http://127.0.0.1:${daemonPort}`, { transports: ['websocket'], reconnection: false });
