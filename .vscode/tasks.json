@@ -4,10 +4,10 @@
     {
       "label": "Remote daemon kill",
       "type": "shell",
-      "command": "npm",
-      "args": ["run", "remote", "kill"],
+      "command": "bun",
+      "args": ["run", "remote", "--", "run", "kill"],
       "options": {
-        "cwd": "${workspaceRoot}"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [],
       "presentation": {
@@ -19,10 +19,10 @@
     {
       "label": "WebUI Dev Server",
       "type": "shell",
-      "command": "npm",
-      "args": ["run", "ui", "start"],
+      "command": "bun",
+      "args": ["run", "--cwd", "ui", "dev"],
       "options": {
-        "cwd": "${workspaceRoot}"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [],
       "presentation": {
@@ -33,13 +33,13 @@
     {
       "label": "Server Deploy",
       "type": "shell",
-      "command": "npm",
-      "args": ["run", "deploy", "daemon"],
+      "command": "bun",
+      "args": ["run", "--cwd", "deploy", "dev:daemon"],
       "presentation": {
         "panel": "shared"
       },
       "options": {
-        "cwd": "${workspaceRoot}"
+        "cwd": "${workspaceFolder}"
       },
       "problemMatcher": [],
       "group": {
