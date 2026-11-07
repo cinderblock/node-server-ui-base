@@ -1,0 +1,5 @@
+{
+  // What `bun run build` and `deploy` compile: everything but the tests
+  "extends": "./tsconfig.json",
+  "exclude": ["src/**/*.test.ts"]
+}

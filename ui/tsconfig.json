@@ -1,15 +1,19 @@
 {
   "compilerOptions": {
-    "module": "ES2020",
-    "moduleResolution": "node",
-    // Most modern browsers support es2018
-    "target": "es2018",
-    "lib": ["es2018", "dom"],
-    "outDir": "build",
-    "jsx": "react",
-    "esModuleInterop": true,
+    // Every browser that supports ES modules also supports ES2022
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "bun"],
+    "jsx": "react-jsx",
+    "noEmit": true,
     "strict": true,
-    "sourceMap": true
+    "noUnusedLocals": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
-  "exclude": ["./webpack/**"]
+  "include": ["src/**/*", "../shared/**/*"]
 }

@@ -1,20 +1,6 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-
-  "[yaml]": {
-    "editor.insertSpaces": true,
-    "editor.tabSize": 2,
-    "editor.autoIndent": "advanced",
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-
-  "editor.codeActionsOnSave": {
-    "source.fixAll": true
-  },
-  "eslint.packageManager": "npm",
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "json", "jsonc", "markdown"],
-  "eslint.format.enable": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
 
   "files.exclude": {
     "**/node_modules": false

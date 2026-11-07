@@ -1,19 +1,20 @@
-import SSH2Promise = require('ssh2-promise');
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { Observable, combineLatest, merge } from 'rxjs';
 import { debounceTime, map, filter, mergeMap } from 'rxjs/operators';
 
-import observeFileChange from '../utils/observeFile';
-import { ConnectOptions } from './ssh2.types';
-import * as debug from '../utils/debug';
-import { isPathString, isDirectoryString } from '../utils/pathTypeDiscriminators';
-import { reduceFileListToMinimalDirs } from '../utils/reduceFileListToMinimalDirs';
-import { getCompiledSourcesFromProgram } from './getCompiledSourcesFromProgram';
-import { mkdir } from '../utils/mkdir';
-import { remoteExecNpm } from './remoteExecNpm';
-import { automaticPrivateKey } from '../utils/automaticPrivateKey';
-import { makeProxyServer } from '../utils/makeProxyServer';
-import { Sources } from './Sources';
+import observeFileChange from '../utils/observeFile.ts';
+import { SSH, type ConnectOptions } from './ssh.ts';
+import type * as debug from '../utils/debug.ts';
+import { isPathString, isDirectoryString } from '../utils/pathTypeDiscriminators.ts';
+import { reduceFileListToMinimalDirs } from '../utils/reduceFileListToMinimalDirs.ts';
+import { getCompiledSourcesFromProgram } from './getCompiledSourcesFromProgram.ts';
+import { mkdir } from '../utils/mkdir.ts';
+import { remoteExecNpm } from './remoteExecNpm.ts';
+import { automaticPrivateKey } from '../utils/automaticPrivateKey.ts';
+import { makeProxyServer } from '../utils/makeProxyServer.ts';
+import { remoteOutputPaths } from './remoteOutputPaths.ts';
+import type { Sources } from './Sources.ts';
 
 const formatHost: ts.FormatDiagnosticsHost = {
   getCanonicalFileName: path => path,
@@ -39,7 +40,7 @@ export type Options = {
   /**
    * Get access to ssh connection after it starts
    */
-  onConnect?: (ssh: SSH2Promise) => Promise<void>;
+  onConnect?: (ssh: SSH) => Promise<void>;
 
   /**
    * Options related to settings on the remote system
@@ -53,11 +54,11 @@ export type Options = {
     /**
      * Function to call to stop running services before deploying
      */
-    stop?: (ssh: SSH2Promise) => Promise<void>;
+    stop?: (ssh: SSH) => Promise<void>;
     /**
      * Function to call to start running services after deploying
      */
-    start?: (ssh: SSH2Promise) => Promise<void>;
+    start?: (ssh: SSH) => Promise<void>;
   };
 
   /**
@@ -65,7 +66,9 @@ export type Options = {
    */
   local?: {
     /**
-     * Root of project to sync to remote
+     * Root of project to sync to remote. Must end with `/`.
+     *
+     * Defaults to the root of this repository.
      */
     basePath?: string;
     /**
@@ -77,7 +80,7 @@ export type Options = {
   /**
    * List of files not compiled by typescript to move over manually
    *
-   * `package.json` and lock files will automatically be included.
+   * `package.json` will automatically be included.
    */
   manualSyncFiles?: string[];
 
@@ -86,13 +89,32 @@ export type Options = {
    */
   log?: Debug;
 
+  /**
+   * Forward a local port to the daemon on the remote, so a locally running UI can reach it.
+   *
+   * Default: local port 8000 to remote port 8000. `false` disables it.
+   */
+  proxy?: { localPort?: number; remotePort?: number } | false;
+
   exitAfterDeploy?: boolean;
 };
 
-export default async function watchBuildTransferRun(options: Options): Promise<void> {
+export type Deployment = {
+  /**
+   * Stop watching, close the proxy, and disconnect
+   */
+  stop(): Promise<void>;
+};
+
+/**
+ * Root of this repository, with a trailing `/`
+ */
+const repoRoot = fileURLToPath(new URL('../../', import.meta.url)).replaceAll('\\', '/');
+
+export default async function watchBuildTransferRun(options: Options): Promise<Deployment> {
   if (options.local?.basePath !== undefined && !isPathString(options.local.basePath))
     throw new Error('Invalid path specified for options.local.basePath');
-  const basePath = options.local?.basePath ?? '../';
+  const basePath = options.local?.basePath ?? repoRoot;
 
   if (options.local?.moduleDir !== undefined && !isDirectoryString(options.local.moduleDir))
     throw new Error('Invalid module directory specified for options.local.moduleDir');
@@ -105,27 +127,29 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
   const localModuleDir = basePath + moduleDir;
   const remoteModuleDir = remotePath + moduleDir;
 
-  const remoteStop = options.remote.stop || ((): Promise<void> => new Promise(resolve => resolve()));
-  const remoteStart = options.remote.start || ((): Promise<void> => new Promise(resolve => resolve()));
+  const remoteStop = options.remote.stop || ((): Promise<void> => Promise.resolve());
+  const remoteStart = options.remote.start || ((): Promise<void> => Promise.resolve());
 
   if (!options.connect.host) throw new Error('Must specify remote host');
 
-  const configPath = ts.findConfigFile(localModuleDir, ts.sys.fileExists) as string;
-  if (!configPath) throw new Error('Could not find a valid tsconfig.json.');
+  const configPath = ts.findConfigFile(localModuleDir, ts.sys.fileExists, 'tsconfig.build.json');
+  if (!configPath) throw new Error('Could not find a valid tsconfig.build.json.');
 
   await automaticPrivateKey(options.connect);
 
   options.connect.reconnectDelay = options.connect.reconnectDelay ?? 250;
 
-  options.connect.compress = true;
+  options.connect.algorithms = {
+    compress: ['zlib@openssh.com', 'zlib', 'none'],
+    ...options.connect.algorithms,
+  };
 
-  options.connect.agentForward = true;
+  // Let the daemon's commands use our SSH agent, when we have one
+  if (options.connect.agent) options.connect.agentForward ??= true;
 
-  // options.connect.debug = (...msg) => options.log?.info('SSH DEBUG:', ...msg);
+  options.log?.info('Connecting ...', { ...options.connect, password: undefined, privateKey: undefined });
 
-  options.log?.info('Connecting ...', options.connect);
-
-  const ssh = new SSH2Promise(options.connect);
+  const ssh = new SSH(options.connect);
 
   await ssh.connect().catch((e: Error) => {
     options.log?.error(e?.name, e);
@@ -140,8 +164,8 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
 
   const manualSyncFiles = options.manualSyncFiles || [];
 
-  // Always sync package.json and package-lock.json
-  manualSyncFiles.push('package.json', 'package-lock.json');
+  // Always sync package.json
+  manualSyncFiles.push('package.json');
 
   async function updatePackagesAndManualTransfers(): Promise<void> {
     options.log?.info('📦 Synchronizing files');
@@ -168,11 +192,16 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
   }
 
   /**
+   * Local directory the compiler thinks it is writing to. Nothing is written there; output goes to the remote.
+   */
+  const virtualOutDir = basePath + '.deploy-out';
+
+  /**
    * Read the program, process it if necessary, and write to remote.
    * @param program TypeScript Compiler Program
    */
   async function handleCompiledSources(program: ts.EmitAndSemanticDiagnosticsBuilderProgram): Promise<void> {
-    const data = getCompiledSourcesFromProgram(program);
+    const data = remoteOutputPaths(getCompiledSourcesFromProgram(program), virtualOutDir, remotePath);
 
     options.postCompile?.(data);
 
@@ -182,27 +211,14 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
     if (dirs.length) await mkdir(ssh, dirs);
 
     // Write all the compiled output from TypeScript Compiler to remote
-    await Promise.all(data.map(({ filename, source }) => sftp.writeFile(filename, source, {})));
-  }
-
-  /**
-   * Single shot build.
-   *
-   * WIP
-   */
-  async function compileAndDistributeSources(): Promise<void> {
-    const config = ts.readConfigFile(configPath, ts.sys.readFile);
-    if (config.error) throw config.error;
-
-    ts.createProgram([basePath + moduleDir], config.config);
-
-    // TODO: finish
-
-    // handleCompiledSources(program)
+    await Promise.all(data.map(({ filename, source }) => sftp.writeFile(filename, source)));
   }
 
   // Create a proxy so that the ui running locally can talk to the daemon as if it were also running locally
-  makeProxyServer({ remoteHost: options.connect.host, remotePort: 8000 });
+  const proxy =
+    options.proxy === false
+      ? undefined
+      : makeProxyServer({ remoteHost: options.connect.host, remotePort: 8000, ...options.proxy });
   // ssh.addTunnel is easier but breaks easier. So, we use the above instead.
   // ssh.addTunnel({ localPort: 8000, remoteAddr: 'localhost', remotePort: 8000 });
 
@@ -231,7 +247,7 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
     const host = ts.createWatchCompilerHost(
       configPath,
 
-      { outDir: remotePath, rootDir: basePath },
+      { outDir: virtualOutDir, rootDir: basePath },
 
       ts.sys,
 
@@ -244,10 +260,9 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
           ':',
           ts.flattenDiagnosticMessageText(diagnostic.messageText, formatHost.getNewLine()),
         ),
-      // options.log?.error(ts.formatDiagnosticsWithColorAndContext([diagnostic], formatHost));
 
       (diagnostic: ts.Diagnostic): void =>
-        options.log?.info('TypeScript:', ts.formatDiagnostic(diagnostic, formatHost).trimRight()),
+        options.log?.info('TypeScript:', ts.formatDiagnostic(diagnostic, formatHost).trimEnd()),
     );
 
     const origCreateProgram = host.createProgram;
@@ -264,34 +279,36 @@ export default async function watchBuildTransferRun(options: Options): Promise<v
       await handleCompiledSources(program);
 
       observable.next();
-
-      // TODO: Check if there is something that this was doing that we needed.
-      // origPostProgramCreate(program);
     };
 
-    ts.createWatchProgram(host);
+    const watch = ts.createWatchProgram(host);
 
-    return (): void => {
-      ts.createEmitAndSemanticDiagnosticsBuilderProgram;
-    };
+    return (): void => watch.close();
   })
     .pipe(map(doneBuilding))
     .pipe(map(() => options.log?.green('✔ Sources updated')));
 
-  combineLatest(packageUpdates, buildAndPush)
-    // .pipe(map(() => options.log?.info('Build count:', buildingCount)))
+  const subscription = combineLatest([packageUpdates, buildAndPush])
     .pipe(filter(() => buildingCount == 0))
-    .subscribe(
-      async () => {
+    .subscribe({
+      next: async () => {
         await remoteStart(ssh);
 
         if (options.exitAfterDeploy) process.exit();
       },
-      e => {
-        options.log?.error('Error in Observable:', e.toString());
+      error: e => {
+        options.log?.error('Error in Observable:', String(e));
         ssh.close();
       },
-    );
+    });
+
+  return {
+    async stop() {
+      subscription.unsubscribe();
+      proxy?.close();
+      await ssh.close();
+    },
+  };
 }
 
 // TODO: Connect debugger/source maps to running node instance

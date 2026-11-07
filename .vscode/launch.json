@@ -10,6 +10,14 @@
       "name": "Launch Chrome against localhost ui",
       "url": "http://localhost:9001",
       "webRoot": "${workspaceFolder}/ui"
+    },
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "Debug daemon (Bun)",
+      "program": "src/main.ts",
+      "cwd": "${workspaceFolder}/daemon",
+      "watchMode": true
     }
   ]
 }

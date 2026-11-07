@@ -1,5 +1,5 @@
 import httpProxy from 'http-proxy';
-import { hostname } from 'os';
+import { hostname } from 'node:os';
 
 type Options = {
   remoteHost: string;
@@ -17,7 +17,7 @@ export function makeProxyServer({ remoteHost, remotePort, localPort = remotePort
       },
     })
     .listen(localPort)
-    .on('error', e => {
-      // console.log('http proxy error:', e);
+    .on('error', () => {
+      // Ignore. The remote daemon is restarted often.
     });
 }

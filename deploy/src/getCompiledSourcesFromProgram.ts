@@ -1,5 +1,5 @@
-import ts from 'typescript';
-import { Sources } from './Sources';
+import type ts from 'typescript';
+import type { Sources } from './Sources.ts';
 
 export function getCompiledSourcesFromProgram(program: ts.EmitAndSemanticDiagnosticsBuilderProgram): Sources {
   const data: Sources = [];

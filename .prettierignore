@@ -1,0 +1,4 @@
+bun.lock
+**/build
+**/dist
+*.drawio.svg

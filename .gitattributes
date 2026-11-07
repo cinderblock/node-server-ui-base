@@ -1,8 +1,5 @@
-# Set the default behavior for all fiels to checkout with LF
-* text eol=lf
-
-# Declare files that will always have CRLF line endings on checkout.
-# *.sln text eol=crlf
+# Normalize line endings: LF in the repo, native on checkout.
+* text=auto
 
 # Denote all files that are truly binary and should not be modified.
 *.png binary

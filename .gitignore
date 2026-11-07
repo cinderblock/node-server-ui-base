@@ -1,8 +1,8 @@
 node_modules
-yarn-error.log
-npm-debug.log
+*.log
 daemon.pid
 daemon.sock
 daemon/build
-ui/build
-ui/bundle
+deploy/build
+ui/dist
+.DS_Store
