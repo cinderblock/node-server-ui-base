@@ -1,57 +1,74 @@
-#!/usr/bin/env node
-import { resolve } from 'path';
+#!/usr/bin/env bun
+/**
+ * Run `npm` in the daemon's directory on the remote, with the local `daemon/package.json`.
+ *
+ * Useful for packages with native code that must be resolved on the remote. The (possibly changed)
+ * `package.json` is copied back afterward.
+ *
+ * Usage: `bun run remote -- <npm args>`, for example `bun run remote -- run kill`
+ */
+import { fileURLToPath } from 'node:url';
+import { SSH } from './src/ssh.ts';
+import config from './config.ts';
+import { remoteDataPrinter } from './src/remoteDataPrinter.ts';
+import { automaticPrivateKey } from './utils/automaticPrivateKey.ts';
+import * as log from './utils/debug.ts';
 
-import SSH from 'node-ssh';
+const { remote, connect } = config;
 
-import config from './config';
+const args = process.argv.slice(2);
 
-const { remote } = config;
+const files = ['package.json'];
 
-const args = ['daemon', '--non-interactive', ...process.argv.slice(2)];
-// console.log('args:', args);
-
-const files = ['daemon/package.json', 'daemon/yarn.lock'];
+const moduleDir = 'daemon';
 
 function localFile(name: string): string {
-  return resolve(__dirname, '..', name);
+  return fileURLToPath(new URL(`../${moduleDir}/${name}`, import.meta.url));
 }
 
 function remoteFile(name: string): string {
-  return remote.directory + '/' + name;
+  return `${remote.directory}/${moduleDir}/${name}`;
 }
 
-async function remoteYarn(): Promise<void> {
+async function remoteNpm(): Promise<number> {
+  await automaticPrivateKey(connect);
+
+  const ssh = new SSH({ ...connect, reconnectTries: 1 });
+
   try {
-    const ssh = new SSH();
-
-    const sshConnection = await ssh.connect(remote.connect);
-
-    try {
-      // TODO: Lock file to prevent multiple people running this at once
-
-      // Copy latest local yarn files to remote
-      await sshConnection.putFiles(files.map(name => ({ local: localFile(name), remote: remoteFile(name) })));
-
-      // Run remote yarn
-      const { code: exitCode, signal, stdout: result, stderr: err } = await sshConnection.exec('yarn', args, {
-        cwd: remote.directory,
-        onStdout: (chunk: Buffer) => process.stdout.write(chunk.toString('utf8')),
-        onStderr: (chunk: Buffer) => process.stderr.write(chunk.toString('utf8')),
-        stream: 'both',
-      });
-
-      if (exitCode) console.log('Non-zero exit code:', exitCode);
-
-      // Copy latest remote yarn files back to local
-      await Promise.all(files.map(name => sshConnection.getFile(localFile(name), remoteFile(name))));
-    } catch (e) {
-      console.log('Error:', e);
-    }
-
-    sshConnection.dispose();
+    await ssh.connect();
   } catch (e) {
-    console.log('Failed to connect');
+    log.error('Failed to connect', e);
+    return 1;
+  }
+
+  try {
+    // TODO: Lock file to prevent multiple people running this at once
+    const sftp = ssh.sftp();
+
+    await ssh.exec('mkdir', ['-p', `${remote.directory}/${moduleDir}`]);
+
+    // Copy latest local files to remote
+    await Promise.all(files.map(name => sftp.fastPut(localFile(name), remoteFile(name))));
+
+    // Run remote npm
+    const npm = await ssh.spawn('npm', ['--prefix', `${remote.directory}/${moduleDir}`, ...args]);
+    npm.on('data', remoteDataPrinter(log, 'npm', 'stdout'));
+    npm.stderr.on('data', remoteDataPrinter(log, 'npm', 'stderr'));
+    const exitCode: number = await new Promise(resolve => npm.on('exit', (code: number | null) => resolve(code ?? 0)));
+
+    if (exitCode) log.error('Non-zero exit code:', exitCode);
+
+    // Copy latest remote files back to local
+    await Promise.all(files.map(name => sftp.fastGet(remoteFile(name), localFile(name))));
+
+    return exitCode;
+  } catch (e) {
+    log.error('Error:', e);
+    return 1;
+  } finally {
+    await ssh.close();
   }
 }
 
-remoteYarn();
+process.exitCode = await remoteNpm();

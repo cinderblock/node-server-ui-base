@@ -1,18 +1,18 @@
-import SSH2Promise from 'ssh2-promise';
-import { ExecOptions } from 'ssh2';
-import * as debug from '../utils/debug';
+import type { SSH } from './ssh.ts';
+import type { ClientChannel, ExecOptions } from 'ssh2';
+import type * as debug from '../utils/debug.ts';
 
 export async function sshSpawn(
   log: typeof debug,
-  ssh: SSH2Promise,
+  ssh: SSH,
   args: string[],
   options: ExecOptions = {},
-): ReturnType<SSH2Promise['spawn']> {
+): Promise<ClientChannel> {
   const cmd = args.shift();
 
   if (!cmd) throw new Error('Must specify a command to run');
 
-  const spawn = await ssh.spawn(cmd, args, options);
+  const spawn: ClientChannel = await ssh.spawn(cmd, args, options);
 
   spawn.allowHalfOpen = false;
 

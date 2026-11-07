@@ -1,9 +1,10 @@
-import { join } from 'path';
-import { promises as fs } from 'fs';
-import { ConnectOptions } from '../src/ssh2.types';
+import { readFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import type { ConnectOptions } from '../src/ssh.ts';
 
 export async function automaticPrivateKey(opts: ConnectOptions): Promise<void> {
-  if (opts.agent || opts.privateKey || opts.password) return;
+  if (opts.agent || opts.privateKey || opts.password || opts.identity) return;
 
   if (process.env.SSH_AUTH_SOCK) opts.agent = process.env.SSH_AUTH_SOCK;
   else if (process.platform === 'win32') opts.agent = 'pageant';
@@ -11,15 +12,17 @@ export async function automaticPrivateKey(opts: ConnectOptions): Promise<void> {
     // No agent detected
   }
 
-  if (process.env.HOME && !opts.agent) {
-    const keyFiles = ['id_rsa', 'id_dsa', 'id_ecdsa'];
-    for (const i in keyFiles) {
+  if (!opts.agent) {
+    const keyFiles = ['id_ed25519', 'id_ecdsa', 'id_rsa'];
+    for (const keyFile of keyFiles) {
       try {
-        const file = join(process.env.HOME, '.ssh', keyFiles[i]);
-        opts.privateKey = await fs.readFile(file);
+        const file = join(homedir(), '.ssh', keyFile);
+        opts.privateKey = await readFile(file);
         console.log('Found and loaded private key file:', file);
         break;
-      } catch (e) {}
+      } catch {
+        // Try the next one
+      }
     }
     if (!opts.privateKey) {
       // No private key found!

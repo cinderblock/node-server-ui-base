@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'fs';
+import { readdirSync, statSync } from 'node:fs';
 
 /**
  * Scan a directory deeply to find all files.
@@ -13,7 +13,7 @@ export function walkSync(dir: string, fileList: string[] = []): string[] {
 
   fileList = fileList || [];
 
-  files.forEach(function(file) {
+  files.forEach(function (file) {
     if (statSync(dir + file).isDirectory()) {
       fileList = walkSync(dir + file + '/', fileList);
     } else {

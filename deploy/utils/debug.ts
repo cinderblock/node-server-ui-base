@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Allow printing with color!
 import chalk from 'chalk';
 
@@ -13,7 +12,7 @@ export function makeVariableLog(colors: ColorList, prefix?: string): Logger {
   const mod = !Array.isArray(colors) && colors.modulo !== undefined ? colors.modulo : arr.length > 1 ? 2 : 1;
   const numbers = !Array.isArray(colors) && colors.numbers === 'always';
 
-  function colorize(val: Parameters<Logger>[0], i: number): Parameters<Logger>[0] | string {
+  function colorize(val: unknown, i: number): unknown {
     if (!(typeof val == 'string' || (numbers && typeof val == 'number'))) return val;
 
     if (i >= arr.length) {
@@ -23,15 +22,15 @@ export function makeVariableLog(colors: ColorList, prefix?: string): Logger {
       i += arr.length - mod;
     }
 
-    return arr[i](`${val}`);
+    return arr[i]!(`${val}`);
   }
 
-  return (...args: Parameters<Logger>): void => console.log(...(prefix ? [prefix, ...args] : args).map(colorize));
+  return (...args: unknown[]): void => console.log(...(prefix ? [prefix, ...args] : args).map(colorize));
 }
 
 function makeChalkLog(color: (s: string) => string) {
-  return function(...args: Parameters<Logger>): void {
-    console.log(...args.map(val => color(val)));
+  return function (...args: unknown[]): void {
+    console.log(...args.map(val => color(String(val))));
   };
 }
 
