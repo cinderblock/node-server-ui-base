@@ -104,15 +104,19 @@ function makeFakeRemote(root: string, shell: string) {
           child.stderr.pipe(channel.stderr, { end: false });
           child.stdout.on('data', (d: Buffer) => transcript.push(d.toString()));
           child.stderr.on('data', (d: Buffer) => transcript.push(d.toString()));
-          child.on('exit', code => transcript.push(`[${info.command.split(' ')[0]} exited ${code}]\n`));
-          child.on('close', code => {
+          // Finish on `exit`, not `close`: on Windows, npm can leave a helper process holding the pipes open
+          child.on('exit', code => {
+            transcript.push(`[${info.command} exited ${code}]\n`);
             children.delete(child);
-            try {
-              channel.exit(code ?? 1);
-              channel.end();
-            } catch {
-              // The client already went away (killed during teardown)
-            }
+            // Let the last output through first
+            setTimeout(() => {
+              try {
+                channel.exit(code ?? 1);
+                channel.end();
+              } catch {
+                // The client already went away (killed during teardown)
+              }
+            }, 50);
           });
         });
 
@@ -248,13 +252,9 @@ test.skipIf(!sh)(
       expect(statSync(join(root, directory, 'daemon', file)).isFile()).toBe(true);
     }
     expect(statSync(join(root, directory, 'daemon', 'node_modules', 'socket.io')).isDirectory()).toBe(true);
-    expect(
-      remote.commands.some(c =>
-        c.startsWith(
-          'npm --prefix my-daemon/daemon install --omit=dev --no-package-lock --no-audit --no-fund --no-update-notifier',
-        ),
-      ),
-    ).toBe(true);
+    expect(remote.commands).toContain(
+      "sh -c 'cd my-daemon/daemon && exec npm install --omit=dev --no-package-lock --no-audit --no-fund --no-update-notifier'",
+    );
 
     // And it works
     const socket = io(`http://127.0.0.1:${daemonPort}`, { transports: ['websocket'], reconnection: false });

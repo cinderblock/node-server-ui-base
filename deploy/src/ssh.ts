@@ -28,6 +28,13 @@ export function shellCommand(cmd: string, args: string[] = []): string {
   return [cmd, ...args].map(shellQuote).join(' ');
 }
 
+/**
+ * `[cmd, args]` that run `cmd args...` from `dir` on the remote, for `SSH.spawn`/`SSH.exec`
+ */
+export function inDirectory(dir: string, cmd: string, args: string[] = []): [string, string[]] {
+  return ['sh', ['-c', `cd ${shellQuote(dir)} && exec ${shellCommand(cmd, args)}`]];
+}
+
 export class CommandError extends Error {
   readonly code: number | null;
   readonly stdout: string;

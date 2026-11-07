@@ -8,7 +8,7 @@
  * Usage: `bun run remote -- <npm args>`, for example `bun run remote -- run kill`
  */
 import { fileURLToPath } from 'node:url';
-import { SSH } from './src/ssh.ts';
+import { inDirectory, SSH } from './src/ssh.ts';
 import config from './config.ts';
 import { remoteDataPrinter } from './src/remoteDataPrinter.ts';
 import { automaticPrivateKey } from './utils/automaticPrivateKey.ts';
@@ -52,7 +52,7 @@ async function remoteNpm(): Promise<number> {
     await Promise.all(files.map(name => sftp.fastPut(localFile(name), remoteFile(name))));
 
     // Run remote npm
-    const npm = await ssh.spawn('npm', ['--prefix', `${remote.directory}/${moduleDir}`, ...args]);
+    const npm = await ssh.spawn(...inDirectory(`${remote.directory}/${moduleDir}`, 'npm', args));
     npm.on('data', remoteDataPrinter(log, 'npm', 'stdout'));
     npm.stderr.on('data', remoteDataPrinter(log, 'npm', 'stderr'));
     const exitCode: number = await new Promise(resolve => npm.on('exit', (code: number | null) => resolve(code ?? 0)));

@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { Folder } from './ConfigurationsHandler.ts';
 import { remoteOutputPaths } from './remoteOutputPaths.ts';
+import { inDirectory, shellCommand, shellQuote } from './ssh.ts';
 
 test('remoteOutputPaths re-roots compiler output', () => {
   const data = [
@@ -27,4 +28,11 @@ test('Folder points the config at the selected one', () => {
     { filename: 'my-daemon/daemon/src/main.js', source: '' },
     { filename: 'my-daemon/daemon/src/configs/config.js', source: "export { default } from './test1.js';\n" },
   ]);
+});
+
+test('shell quoting', () => {
+  expect(shellCommand('mkdir', ['-p', 'my-daemon/daemon'])).toBe('mkdir -p my-daemon/daemon');
+  expect(shellQuote("it's here")).toBe(`'it'"'"'s here'`);
+  expect(shellQuote('$(rm -rf ~)')).toBe(`'$(rm -rf ~)'`);
+  expect(inDirectory('my dir', 'npm', ['run', 'kill'])).toEqual(['sh', ['-c', "cd 'my dir' && exec npm run kill"]]);
 });

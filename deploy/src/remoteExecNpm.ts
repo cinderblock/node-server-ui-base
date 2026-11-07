@@ -1,4 +1,4 @@
-import type { SSH } from './ssh.ts';
+import { inDirectory, type SSH } from './ssh.ts';
 import type { ClientChannel } from 'ssh2';
 import { remoteDataPrinter } from './remoteDataPrinter.ts';
 import type { Debug } from './watchBuildTransferRun.ts';
@@ -11,9 +11,6 @@ import type { Debug } from './watchBuildTransferRun.ts';
 export async function remoteExecNpm(ssh: SSH, cwd: string, log?: Debug): Promise<void> {
   const args: string[] = [];
 
-  // Run all npm commands in module directory
-  args.push('--prefix', cwd);
-
   args.push('install');
   // Don't install dev dependencies
   args.push('--omit=dev');
@@ -21,11 +18,12 @@ export async function remoteExecNpm(ssh: SSH, cwd: string, log?: Debug): Promise
   args.push('--no-package-lock');
   // Quieter output
   args.push('--no-audit', '--no-fund');
-  // npm's update check leaves a background process holding the output open, so the command never finishes
+  // No "new npm available" nag in the deploy output
   args.push('--no-update-notifier');
 
   try {
-    const npm: ClientChannel = await ssh.spawn('npm', args);
+    // Run in the module directory
+    const npm: ClientChannel = await ssh.spawn(...inDirectory(cwd, 'npm', args));
     npm.allowHalfOpen = false;
 
     // Remove verboseness from ssh.spawn
